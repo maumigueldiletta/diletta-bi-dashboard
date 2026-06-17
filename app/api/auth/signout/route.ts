@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { clearSessionCookie } from "@/lib/auth";
+import { clearSessionCookie } from "@/lib/auth-server";
 
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
-  await clearSessionCookie();
-  return NextResponse.redirect(new URL("/login", req.url), { status: 303 });
-}
-
-export async function GET(req: NextRequest) {
+async function go(req: NextRequest) {
   await clearSessionCookie();
   return NextResponse.redirect(new URL("/login", req.url));
 }
+export const GET = go;
+export const POST = go;

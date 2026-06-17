@@ -7,14 +7,9 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   const { email } = await req.json().catch(() => ({ email: "" }));
   const e = (email || "").trim().toLowerCase();
-  // Sempre retornamos 200 pra não revelar quem está no allowlist
-  if (!e || !e.includes("@")) {
-    return NextResponse.json({ ok: true });
-  }
-  if (!isEmailAllowed(e)) {
-    return NextResponse.json({ ok: true });
-  }
-  const token = createMagicToken(e);
+  if (!e || !e.includes("@")) return NextResponse.json({ ok: true });
+  if (!isEmailAllowed(e)) return NextResponse.json({ ok: true });
+  const token = await createMagicToken(e);
   const url = `${baseUrl(req)}/api/auth/verify?token=${encodeURIComponent(token)}`;
   const result = await sendMagicLinkEmail(e, url);
   if (!result.ok) {

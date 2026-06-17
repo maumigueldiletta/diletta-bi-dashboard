@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySessionValue, SESSION_COOKIE_NAME } from "@/lib/auth";
 
 const DISABLE_AUTH = process.env.DISABLE_AUTH === "1";
-
 const PUBLIC = ["/login", "/api/auth"];
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   if (DISABLE_AUTH) return NextResponse.next();
 
   const { pathname } = req.nextUrl;
@@ -14,10 +13,9 @@ export function middleware(req: NextRequest) {
   }
 
   const cookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = cookie ? verifySessionValue(cookie) : null;
+  const session = cookie ? await verifySessionValue(cookie) : null;
   if (!session) {
-    const url = new URL("/login", req.url);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL("/login", req.url));
   }
   return NextResponse.next();
 }
