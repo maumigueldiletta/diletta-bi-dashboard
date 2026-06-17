@@ -1,14 +1,22 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, TrendingDown, TrendingUp, Settings, LogOut } from "lucide-react";
+import { LayoutGrid, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SNAPSHOT_CAPTURED_AT, SNAPSHOT_PERIOD } from "@/lib/snapshot";
 
 const items = [
   { href: "/", label: "Overview", icon: LayoutGrid },
   { href: "/inbound", label: "Inbound", icon: TrendingDown },
   { href: "/outbound", label: "Outbound", icon: TrendingUp },
 ];
+
+function fmtCaptured(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch { return iso; }
+}
 
 export function Sidebar() {
   const path = usePathname();
@@ -43,10 +51,13 @@ export function Sidebar() {
       </nav>
       <div className="border-t border-diletta-line p-3 text-xs text-diletta-text3">
         <div className="px-3 py-2">
-          <div className="mb-1 font-semibold uppercase tracking-wider text-diletta-text2">Status</div>
+          <div className="mb-1 font-semibold uppercase tracking-wider text-diletta-text2">Snapshot</div>
           <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 ring-2 ring-amber-400/30"/>
-            <span>V0 · dados mock</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 ring-2 ring-emerald-400/30"/>
+            <span>{fmtCaptured(SNAPSHOT_CAPTURED_AT)}</span>
+          </div>
+          <div className="mt-1 text-[10px] uppercase tracking-wider text-diletta-text3">
+            Base: {SNAPSHOT_PERIOD}
           </div>
         </div>
       </div>

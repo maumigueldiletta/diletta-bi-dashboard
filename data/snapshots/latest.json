@@ -1,0 +1,56 @@
+{
+  "capturedAt": "2026-06-17T18:30:00Z",
+  "period": "30d",
+  "note": "Snapshot inicial — dados parciais. Comando 'atualiza dashboard' atualiza.",
+  "googleAds": {
+    "clicks": 1600,
+    "impressions": 12500,
+    "spend": 2340.00,
+    "conversions": 0,
+    "campaigns": [
+      { "name": "A · Squad/IA (high-intent)", "clicks": 960, "spend": 1287, "conversions": 0, "cpc": 1.34 },
+      { "name": "B · Fintech vertical (core banking)", "clicks": 640, "spend": 1053, "conversions": 0, "cpc": 1.65 }
+    ]
+  },
+  "gsc": {
+    "clicks": 38,
+    "impressions": 817,
+    "position": 5.4,
+    "queries": [
+      { "query": "diletta solutions", "clicks": 12, "impressions": 39, "position": 1.0, "isBrand": true },
+      { "query": "diletta", "clicks": 7, "impressions": 79, "position": 6.7, "isBrand": true },
+      { "query": "dilleta", "clicks": 5, "impressions": 22, "position": 2.7, "isBrand": true },
+      { "query": "onda finance", "clicks": 1, "impressions": 1, "position": 1.0, "isBrand": false },
+      { "query": "rua walter august hadler", "clicks": 0, "impressions": 119, "position": 5.6, "isBrand": false },
+      { "query": "squad as a service", "clicks": 0, "impressions": 10, "position": 26.7, "isBrand": false },
+      { "query": "lia core", "clicks": 0, "impressions": 3, "position": 8.7, "isBrand": false },
+      { "query": "squad para fintechs", "clicks": 0, "impressions": 2, "position": 1.0, "isBrand": false }
+    ]
+  },
+  "ga4": {
+    "sessions": 3251,
+    "users": 2842,
+    "generateLead": 23,
+    "calendlyBook": 5,
+    "engagementRate": 56.3,
+    "channelMix": [
+      { "channel": "Paid Search (Google Ads)", "pctSessions": 42 },
+      { "channel": "Direct", "pctSessions": 22 },
+      { "channel": "Paid Social (LinkedIn)", "pctSessions": 18 },
+      { "channel": "Organic Search", "pctSessions": 10 },
+      { "channel": "Referral", "pctSessions": 5 },
+      { "channel": "Organic Social", "pctSessions": 3 }
+    ]
+  },
+  "linkedin": {
+    "clicks": 981,
+    "impressions": 39364,
+    "spend": 1090.00,
+    "ctr": 2.49,
+    "leads": 0,
+    "campaigns": [
+      { "name": "C1 · Awareness — Diletta posicionamento", "status": "Ativa", "clicks": 981, "impressions": 39364, "spend": 1090, "ctr": 2.49, "cpc": 1.11, "leads": 0 },
+      { "name": "C2 · Lead Gen — Diagnóstico arquitetura", "status": "Rascunho", "clicks": 0, "impressions": 0, "spend": 0, "ctr": 0, "cpc": 0, "leads": 0 }
+    ]
+  }
+}
