@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-0: #08050A;
+  --bg-1: #0E0A0C;
+  --bg-2: #15101A;
+  --line: rgba(255,255,255,0.08);
+  --text-1: #F5F0F0;
+  --text-2: #BAB2B5;
+  --text-3: #7A7378;
+  --red: #E60000;
+}
+
+html, body {
+  background: var(--bg-0);
+  color: var(--text-1);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif { font-family: 'Fraunces', Georgia, serif; }
+
+/* Subtle red glow on right side, branded background */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse 1400px 900px at 90% 50%, rgba(230,0,0,0.06), transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.brand-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Tremor dark adjustments */
+.tremor-Card-root { background: var(--bg-1) !important; border-color: var(--line) !important; }
+.tremor-Metric { color: var(--text-1) !important; }
+.tremor-Text { color: var(--text-2) !important; }
+.tremor-Title { color: var(--text-1) !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.20); }
