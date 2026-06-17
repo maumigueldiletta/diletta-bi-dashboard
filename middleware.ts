@@ -1,24 +1,26 @@
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { verifySessionValue, SESSION_COOKIE_NAME } from "@/lib/auth";
 
 const DISABLE_AUTH = process.env.DISABLE_AUTH === "1";
 
-export default auth((req) => {
+const PUBLIC = ["/login", "/api/auth"];
+
+export function middleware(req: NextRequest) {
   if (DISABLE_AUTH) return NextResponse.next();
 
-  const isLoggedIn = !!req.auth;
   const { pathname } = req.nextUrl;
+  if (PUBLIC.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
 
-  const publicPaths = ["/login", "/api/auth"];
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
-
-  if (isPublic) return NextResponse.next();
-  if (!isLoggedIn) {
-    const loginUrl = new URL("/login", req.nextUrl.origin);
-    return NextResponse.redirect(loginUrl);
+  const cookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const session = cookie ? verifySessionValue(cookie) : null;
+  if (!session) {
+    const url = new URL("/login", req.url);
+    return NextResponse.redirect(url);
   }
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$).*)"],
