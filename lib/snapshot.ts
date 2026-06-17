@@ -1,9 +1,7 @@
-// Loads snapshot JSON and expands to format expected by pages.
-// Daily series are synthesized with noise+trend from real totals.
-
+// Loads snapshot JSON. Returns null for unverified fields.
+// Daily series are evenly-distributed (no noise) from real totals.
 import snapshot from "@/data/snapshots/latest.json";
 
-export type SnapshotData = typeof snapshot;
 export type Period = "7d" | "30d" | "90d" | "since-launch";
 
 export const PERIODS: { id: Period; label: string; days: number }[] = [
@@ -13,25 +11,7 @@ export const PERIODS: { id: Period; label: string; days: number }[] = [
   { id: "since-launch", label: "Desde lançamento", days: 108 },
 ];
 
-export const SNAPSHOT_PERIOD: Period = (snapshot.period as Period) || "30d";
 export const SNAPSHOT_CAPTURED_AT = snapshot.capturedAt;
-
-// Period scaling: snapshot is captured at one period; other periods scale linearly.
-function scale(period: Period): number {
-  const target = PERIODS.find(p => p.id === period)!.days;
-  const source = PERIODS.find(p => p.id === SNAPSHOT_PERIOD)!.days;
-  return target / source;
-}
-
-function series(days: number, base: number, noise = 0.3, trend = 0): number[] {
-  const out: number[] = [];
-  for (let i = 0; i < days; i++) {
-    const t = i / Math.max(days - 1, 1);
-    const value = base * (1 + trend * t) * (1 + (Math.random() - 0.5) * noise);
-    out.push(Math.max(0, Math.round(value * 100) / 100));
-  }
-  return out;
-}
 
 function dates(days: number): string[] {
   const out: string[] = [];
@@ -44,37 +24,38 @@ function dates(days: number): string[] {
   return out;
 }
 
+// Even distribution — no noise, no fake trend.
+function flatSeries(days: number, total: number | null): number[] {
+  if (total === null || total === undefined) return new Array(days).fill(0);
+  const perDay = total / days;
+  return new Array(days).fill(perDay);
+}
+
+function nz(v: number | null | undefined, fallback = 0): number {
+  return v === null || v === undefined ? fallback : v;
+}
+
 // ========== GOOGLE ADS ==========
 export function googleAdsData(period: Period) {
   const days = PERIODS.find(p => p.id === period)!.days;
   const ds = dates(days);
-  const s = scale(period);
   const ga = snapshot.googleAds;
-  const totalClicks = ga.clicks * s;
-  const totalImpressions = ga.impressions * s;
-  const totalSpend = ga.spend * s;
-  const totalConversions = ga.conversions * s;
-  const clicks = series(days, totalClicks / days, 0.4, 0.05);
-  const impressions = series(days, totalImpressions / days, 0.5, 0.05);
-  const spend = series(days, totalSpend / days, 0.3, 0.05);
-  const conversions = series(days, totalConversions / days, 1.5, 0);
-  const total = {
-    clicks: Math.round(clicks.reduce((a, b) => a + b, 0)),
-    impressions: Math.round(impressions.reduce((a, b) => a + b, 0)),
-    spend: Math.round(spend.reduce((a, b) => a + b, 0) * 100) / 100,
-    conversions: Math.round(conversions.reduce((a, b) => a + b, 0)),
-  };
+  const clicks = flatSeries(days, ga.clicks);
+  const impressions = flatSeries(days, ga.impressions);
+  const spend = flatSeries(days, ga.spend);
+  const conversions = flatSeries(days, ga.conversions);
   return {
     ds,
-    daily: ds.map((date, i) => ({ date, clicks: clicks[i], impressions: impressions[i], spend: spend[i], conversions: conversions[i] })),
-    total: { ...total, ctr: total.impressions ? (total.clicks / total.impressions) * 100 : 0, cpc: total.clicks ? total.spend / total.clicks : 0 },
-    campaigns: ga.campaigns.map(c => ({
-      name: c.name,
-      clicks: Math.round(c.clicks * s),
-      spend: Math.round(c.spend * s * 100) / 100,
-      conversions: Math.round(c.conversions * s),
-      cpc: c.cpc,
+    verified: true,
+    period: ga.period,
+    daily: ds.map((date, i) => ({
+      date, clicks: clicks[i], impressions: impressions[i], spend: spend[i], conversions: conversions[i],
     })),
+    total: {
+      clicks: ga.clicks, impressions: ga.impressions, spend: ga.spend, conversions: ga.conversions,
+      ctr: ga.ctr, cpc: ga.cpc, convRate: ga.convRate, costPerConv: ga.costPerConv,
+    },
+    campaigns: ga.campaigns,
   };
 }
 
@@ -82,24 +63,18 @@ export function googleAdsData(period: Period) {
 export function gscData(period: Period) {
   const days = PERIODS.find(p => p.id === period)!.days;
   const ds = dates(days);
-  const s = scale(period);
   const g = snapshot.gsc;
-  const totalClicks = g.clicks * s;
-  const totalImpressions = g.impressions * s;
-  const clicks = series(days, totalClicks / days, 1.0, 0.3);
-  const impressions = series(days, totalImpressions / days, 0.6, 0.2);
-  const total = {
-    clicks: Math.round(clicks.reduce((a, b) => a + b, 0)),
-    impressions: Math.round(impressions.reduce((a, b) => a + b, 0)),
-  };
+  const clicks = flatSeries(days, g.clicks);
+  const impressions = flatSeries(days, g.impressions);
   return {
     ds,
-    daily: ds.map((date, i) => ({ date, clicks: Math.round(clicks[i]), impressions: Math.round(impressions[i]) })),
-    total: { ...total, ctr: total.impressions ? (total.clicks / total.impressions) * 100 : 0, position: g.position },
-    queries: g.queries.map(q => ({
-      ...q,
-      ctr: q.impressions ? (q.clicks / q.impressions) * 100 : 0,
-    })),
+    verified: true,
+    period: g.period,
+    daily: ds.map((date, i) => ({ date, clicks: clicks[i], impressions: impressions[i] })),
+    total: {
+      clicks: g.clicks, impressions: g.impressions, ctr: g.ctr, position: g.position,
+    },
+    queries: g.queries,
   };
 }
 
@@ -107,27 +82,34 @@ export function gscData(period: Period) {
 export function ga4Data(period: Period) {
   const days = PERIODS.find(p => p.id === period)!.days;
   const ds = dates(days);
-  const s = scale(period);
   const g = snapshot.ga4;
-  const sessions = series(days, (g.sessions * s) / days, 0.35, 0.1);
-  const users = series(days, (g.users * s) / days, 0.35, 0.1);
-  const generateLead = series(days, (g.generateLead * s) / days, 1.2, 0.2);
-  const calendlyBook = series(days, (g.calendlyBook * s) / days, 1.5, 0.2);
-  const total = {
-    sessions: Math.round(sessions.reduce((a, b) => a + b, 0)),
-    users: Math.round(users.reduce((a, b) => a + b, 0)),
-    generateLead: Math.round(generateLead.reduce((a, b) => a + b, 0)),
-    calendlyBook: Math.round(calendlyBook.reduce((a, b) => a + b, 0)),
-  };
+  // Scale 7d KPIs to the requested period (rough estimate, marked clearly)
+  const scale = days / 7;
+  const usersScaled = Math.round(g.users7d * scale);
+  const viewsScaled = Math.round(g.views7d * scale);
+  const eventsScaled = Math.round(g.events7d * scale);
   return {
     ds,
-    daily: ds.map((date, i) => ({ date, sessions: Math.round(sessions[i]), users: Math.round(users[i]), generateLead: Math.round(generateLead[i]), calendlyBook: Math.round(calendlyBook[i]) })),
-    total: { ...total, engagementRate: g.engagementRate },
-    channels: g.channelMix.map(c => ({
-      channel: c.channel,
-      sessions: Math.round((total.sessions * c.pctSessions) / 100),
-      users: Math.round((total.users * c.pctSessions) / 100),
+    verified: true,
+    period: g.period,
+    snapshot7d: { users: g.users7d, views: g.views7d, events: g.events7d, vsPrev: g.vsPrevPct },
+    scaledForPeriod: { users: usersScaled, views: viewsScaled, events: eventsScaled },
+    daily: ds.map((date, i) => ({
+      date,
+      sessions: 0,
+      users: usersScaled / days,
+      generateLead: 0,
+      calendlyBook: 0,
     })),
+    total: {
+      // Unverified values stay null — pages will render "—"
+      sessions: g.sessions,
+      users: usersScaled,
+      generateLead: g.generateLead,
+      calendlyBook: g.calendlyBook,
+      engagementRate: g.engagementRate,
+    },
+    channels: g.channelMix, // null
   };
 }
 
@@ -135,30 +117,29 @@ export function ga4Data(period: Period) {
 export function linkedinData(period: Period) {
   const days = PERIODS.find(p => p.id === period)!.days;
   const ds = dates(days);
-  const s = scale(period);
   const l = snapshot.linkedin;
-  const totalImpressions = l.impressions * s;
-  const totalClicks = l.clicks * s;
-  const totalSpend = l.spend * s;
-  const impressions = series(days, totalImpressions / days, 0.4);
-  const clicks = series(days, totalClicks / days, 0.5);
-  const spend = series(days, totalSpend / days, 0.3);
-  const total = {
-    impressions: Math.round(impressions.reduce((a, b) => a + b, 0)),
-    clicks: Math.round(clicks.reduce((a, b) => a + b, 0)),
-    spend: Math.round(spend.reduce((a, b) => a + b, 0) * 100) / 100,
-    leads: l.leads,
-  };
+  const clicks = flatSeries(days, l.totalClicks);
+  const spend = flatSeries(days, l.totalSpendUsd); // USD
   return {
     ds,
-    daily: ds.map((date, i) => ({ date, impressions: Math.round(impressions[i]), clicks: Math.round(clicks[i]), spend: spend[i] })),
-    total: { ...total, ctr: total.impressions ? (total.clicks / total.impressions) * 100 : 0, cpc: total.clicks ? total.spend / total.clicks : 0 },
-    campaigns: l.campaigns.map(c => ({
-      ...c,
-      clicks: Math.round(c.clicks * s),
-      impressions: Math.round(c.impressions * s),
-      spend: Math.round(c.spend * s * 100) / 100,
+    verified: true,
+    period: l.period,
+    daily: ds.map((date, i) => ({
+      date,
+      impressions: 0,
+      clicks: clicks[i],
+      spend: spend[i],
     })),
+    total: {
+      impressions: l.totalImpressions, // null
+      clicks: l.totalClicks,
+      spend: l.totalSpendUsd, // USD
+      currency: "USD",
+      ctr: l.totalCtr, // null
+      cpc: l.totalClicks ? l.totalSpendUsd / l.totalClicks : null,
+      leads: 0,
+    },
+    campaigns: l.campaigns,
   };
 }
 
@@ -167,25 +148,19 @@ export function overviewData(period: Period) {
   const ads = googleAdsData(period);
   const li = linkedinData(period);
   const ga = ga4Data(period);
-  const totalSpend = ads.total.spend + li.total.spend;
-  const totalLeads = ga.total.generateLead;
-  const totalMeetings = ga.total.calendlyBook;
   return {
-    totalSpend,
-    totalLeads,
-    cpl: totalLeads ? totalSpend / totalLeads : 0,
-    totalMeetings,
+    // Only Google Ads BRL is summed. LinkedIn USD shown separately.
+    totalSpendBrl: ads.total.spend,
+    totalSpendUsd: li.total.spend,
+    totalLeads: ga.total.generateLead, // null
+    cpl: null, // unknown without verified leads
+    totalMeetings: ga.total.calendlyBook, // null
     ds: ads.ds,
     spendByChannel: ads.ds.map((date, i) => ({
       date,
-      "Google Ads": ads.daily[i].spend,
-      "LinkedIn Ads": li.daily[i].spend,
+      "Google Ads (BRL)": ads.daily[i].spend,
     })),
-    leadsByChannel: ga.ds.map((date, i) => ({
-      date,
-      "Inbound (web)": ga.daily[i].generateLead,
-      "LinkedIn Lead Gen": 0,
-    })),
+    leadsByChannel: null, // suppress chart until verified
   };
 }
 
@@ -193,6 +168,8 @@ export function overviewData(period: Period) {
 export const syncStatus = [
   { source: "Google Ads", status: "snapshot" as const, lastSyncAt: SNAPSHOT_CAPTURED_AT },
   { source: "Google Search Console", status: "snapshot" as const, lastSyncAt: SNAPSHOT_CAPTURED_AT },
-  { source: "GA4", status: "snapshot" as const, lastSyncAt: SNAPSHOT_CAPTURED_AT },
-  { source: "LinkedIn Ads", status: "snapshot" as const, lastSyncAt: SNAPSHOT_CAPTURED_AT },
+  { source: "GA4 (parcial)", status: "snapshot" as const, lastSyncAt: SNAPSHOT_CAPTURED_AT },
+  { source: "LinkedIn Ads (parcial)", status: "snapshot" as const, lastSyncAt: SNAPSHOT_CAPTURED_AT },
 ];
+
+export const SNAPSHOT_PERIOD = "30d" as Period;

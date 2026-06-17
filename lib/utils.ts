@@ -22,3 +22,18 @@ export function delta(curr: number, prev: number): { value: number; isUp: boolea
   const pct = prev === 0 ? (curr > 0 ? 100 : 0) : (diff / prev) * 100;
   return { value: diff, isUp: diff >= 0, pct };
 }
+
+// Format helpers that respect null = "—"
+export function brlOrDash(v: number | null | undefined): string {
+  return v === null || v === undefined ? "—" : brl(v);
+}
+export function usdOrDash(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
+}
+export function numOrDash(v: number | null | undefined): string {
+  return v === null || v === undefined ? "—" : num(v);
+}
+export function pctOrDash(v: number | null | undefined): string {
+  return v === null || v === undefined ? "—" : pct(v);
+}
